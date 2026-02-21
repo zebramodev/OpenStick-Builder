@@ -1,13 +1,12 @@
-name: Build OpenStick Image
+name: Build OpenStick (Mainline)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repository
@@ -15,6 +14,20 @@ jobs:
         with:
           submodules: recursive
 
+      # -------------------------------
+      # Fix Debian archive key problem
+      # -------------------------------
+      - name: Update keyrings and certificates
+        run: |
+          sudo apt update
+          sudo apt install --reinstall -y \
+            debian-archive-keyring \
+            ca-certificates
+          sudo update-ca-certificates
+
+      # -------------------------------
+      # Install build dependencies
+      # -------------------------------
       - name: Install dependencies
         run: |
           sudo apt update
@@ -33,14 +46,36 @@ jobs:
             libssl-dev \
             libncurses-dev \
             device-tree-compiler \
-            python3
+            python3 \
+            rsync \
+            unzip \
+            zip
 
-      - name: Build image
+      # -------------------------------
+      # Optional cache (speeds rebuilds)
+      # -------------------------------
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            dl
+            output
+          key: ${{ runner.os }}-openstick-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-openstick-
+
+      # -------------------------------
+      # Build image
+      # -------------------------------
+      - name: Build image (fy-mf800)
         run: |
           sudo ./build.sh fy-mf800
 
-      - name: Upload artifacts
+      # -------------------------------
+      # Upload artifacts
+      # -------------------------------
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: openstick-build
+          name: openstick-fy-mf800
           path: output/*
