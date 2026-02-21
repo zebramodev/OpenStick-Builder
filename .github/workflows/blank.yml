@@ -1,0 +1,46 @@
+name: Build OpenStick Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            gcc-aarch64-linux-gnu \
+            git \
+            wget \
+            curl \
+            debootstrap \
+            qemu-user-static \
+            binfmt-support \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libncurses-dev \
+            device-tree-compiler \
+            python3
+
+      - name: Build image
+        run: |
+          sudo ./build.sh fy-mf800
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openstick-build
+          path: output/*
